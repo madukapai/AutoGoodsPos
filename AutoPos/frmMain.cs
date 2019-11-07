@@ -43,8 +43,8 @@ namespace AutoPos
             {
                 EndPoint = ConfigurationManager.AppSettings["EndPoint"].ToString(),
                 PredictionKey = ConfigurationManager.AppSettings["PredictionKey"].ToString(),
-                ProjectId = Guid.Parse(ConfigurationManager.AppSettings["ProjectId"].ToString()),
-                PublishName = ConfigurationManager.AppSettings["PublishName"].ToString(),
+                ClassifyProjectId = Guid.Parse(ConfigurationManager.AppSettings["ClassifyProjectId"].ToString()),
+                ClassifyPublishName = ConfigurationManager.AppSettings["ClassifyPublishName"].ToString(),
             };
         }
 
@@ -56,24 +56,42 @@ namespace AutoPos
         private void BtnDetect_Click(object sender, EventArgs e)
         {
             Image objImage = oWebCam.CaptureImage();
-            var ms = new MemoryStream();
-            objImage.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+            var ms1 = new MemoryStream();
+            var ms2 = new MemoryStream();
+            objImage.Save(ms1, System.Drawing.Imaging.ImageFormat.Jpeg);
+            objImage.Save(ms2, System.Drawing.Imaging.ImageFormat.Jpeg);
 
-            // 送出辨識的動作
-            var result = customVision.DetectObject(ms);
 
-            // 顯示在品項上
+            // 顯示品項類型在文字欄位上
             bool blIsDetect = false;
-            if (result.Predictions.Count > 0)
-            {
-                var item = result.Predictions.OrderByDescending(o => o.Probability).FirstOrDefault();
+            string strClassifyName = "";
 
-                if (item.Probability > 0.7)
+            // 送出辨識類別的動作
+            var result = customVision.DetectClassify(ms1);
+            for (int i = 0; i < result.Predictions.Count; i++)
+            {
+
+                if (result.Predictions[i].Probability > 0.7)
                 {
                     blIsDetect = true;
                     btnPayment.Enabled = true;
+                    strClassifyName = result.Predictions[i].TagName;
+                    lbxGoods.Items.Add(strClassifyName);
+                }
+            }
 
-                    Models.GoodsModel.GoodsInfo goods = new GoodsInfo().GetGoodsInfo(item.TagName);
+            // 送出辨識品項的動作
+            result = customVision.DetectObject(ms2, strClassifyName);
+
+            // 顯示品項名稱在文字欄位上
+            for (int i = 0; i < result.Predictions.Count; i++)
+            {
+
+                if (result.Predictions[i].Probability > 0.7)
+                {
+                    blIsDetect = true;
+                    btnPayment.Enabled = true;
+                    Models.GoodsModel.GoodsInfo goods = new GoodsInfo().GetGoodsInfo(result.Predictions[i].TagName);
                     if (goods != null)
                     {
                         objGoods.Add(goods);
@@ -106,6 +124,7 @@ namespace AutoPos
             lbxGoods.Items.Clear();
             btnPayment.Text = "結帳";
             btnPayment.Enabled = false;
+            objGoods.Clear();
         }
 
         /// <summary>
