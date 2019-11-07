@@ -137,5 +137,29 @@ namespace AutoPos
             MessageBox.Show("請選擇付款方式，悠遊卡、信用卡或是LinePay支付", "結帳", MessageBoxButtons.OK, MessageBoxIcon.Information);
             BtnReset_Click(sender, e);
         }
+
+        /// <summary>
+        /// 單一物品辨識
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnObjectDetect_Click(object sender, EventArgs e)
+        {
+            Image objImage = oWebCam.CaptureImage();
+            var ms1 = new MemoryStream();
+            objImage.Save(ms1, System.Drawing.Imaging.ImageFormat.Jpeg);
+
+            // 送出辨識品項的動作
+            var result = customVision.DetectObject(ms1, "BottleDrink");
+
+            // 顯示品項名稱在文字欄位上
+            for (int i = 0; i < result.Predictions.Count; i++)
+            {
+                if (result.Predictions[i].Probability > 0.7)
+                {
+                    lbxGoods.Items.Add(result.Predictions[i].TagName);
+                }
+            }
+        }
     }
 }
